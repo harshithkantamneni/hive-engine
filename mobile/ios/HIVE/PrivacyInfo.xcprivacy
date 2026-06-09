@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HIVE iOS — PrivacyInfo.xcprivacy
+
+  Satisfies Apple's privacy-manifest requirement (introduced at WWDC23,
+  enforced for App Store Connect submissions since 2024-Q2). HIVE ships this
+  manifest with:
+
+    NSPrivacyTracking           = false          (ZERO-TELEMETRY)
+    NSPrivacyTrackingDomains    = empty array    (no tracking egress)
+    NSPrivacyCollectedDataTypes = empty array    (no data collected)
+    NSPrivacyAccessedAPITypes   = empty array    (populated post-archive)
+
+  The three zero-tracking declarations encode HIVE's ZERO-TELEMETRY posture.
+  Flipping NSPrivacyTracking to true, adding a tracking domain, or adding a
+  collected-data-type is a deliberate policy change, not a routine edit.
+
+  NSPrivacyAccessedAPITypes population:
+    The array is intentionally empty at v1.0. It is populated with verified
+    reason codes per Apple's documented enumeration at
+      https://developer.apple.com/documentation/bundleresources/privacy-manifest-files/describing-use-of-required-reason-api
+    after the first `xcodebuild archive` + Xcode Organizer Privacy Report
+    run observes which required-reason Apple APIs the compiled binary
+    actually reaches.
+
+    Any placeholder reason codes are illustrative only and are NOT verified.
+    The current Apple codes must be extracted at archive time, and this array
+    populated only with codes that (a) exist in Apple's current documented
+    enumeration AND (b) correspond to a required-reason API the HIVE binary
+    actually uses. Fabricated codes are not permitted — if a dependency would
+    require one, it is removed rather than declared with a fabricated code.
+
+    A post-archive CI check verifies coverage and fails on a
+    missing-declared-reason for any observed-used API.
+
+  Outbound-traffic envelope (libp2p peers, BYO-CDN, APNS opaque relay, NTP)
+  is not tracking.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- HIVE is zero-tracking. -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <!-- Empty tracking-domains: no HIVE-owned endpoint is contacted for
+         tracking. The outbound-traffic envelope (libp2p peers + BYO-CDN +
+         APNS opaque relay + NTP) is not tracking. -->
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- Empty collected-data-types: HIVE does not collect user data
+         off-device. All tuple data is P2P-replicated and user-owned. -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+
+    <!-- Empty at v1.0; populated with verified reason codes per Apple's
+         current documented enumeration after the first `xcodebuild archive`
+         + Xcode Organizer Privacy Report run. Any placeholder codes are
+         illustrative only and must be replaced with codes that exist in
+         Apple's current enumeration and match an API the binary actually
+         uses (e.g. a DiskSpace reason such as "check disk space before
+         write" for a sqlite WAL free-space probe). A post-archive CI check
+         verifies coverage against Apple's published reason-code list. -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+</dict>
+</plist>

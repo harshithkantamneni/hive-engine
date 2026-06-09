@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HIVE Android — AndroidManifest.xml
+
+  Backup/data-extraction hardening:
+    android:allowBackup         = "false"  (device salt + trustee-list ciphertext must never leave the device)
+    android:dataExtractionRules = "@xml/data_extraction_rules"  (Android 12+ all-exclude)
+    android:fullBackupContent   = "false"  (legacy belt-and-suspenders pre-Android 12)
+    android:hasFragileUserData  = "false"  (no "keep app data on uninstall" prompt)
+
+  Permission set is the minimal whitelist below: INTERNET, ACCESS_NETWORK_STATE,
+  and the BLE runtime permissions for local peer-to-peer device discovery.
+  BLUETOOTH_SCAN carries usesPermissionFlags="neverForLocation".
+
+  Package name is a placeholder; the final package is TBD.
+  TODO(package-name).
+
+  ZERO-TELEMETRY: no Firebase, no Crashlytics, no GPS analytics, no default cloud egress.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="computer.hive.app">
+    <!-- TODO(package-name): final package TBD. -->
+
+    <!--
+      Permissions — minimal whitelist. INTERNET + ACCESS_NETWORK_STATE plus the
+      BLE runtime permissions for local peer-to-peer device discovery (grouped
+      under Android's "Nearby devices"). User-facing runtime prompt copy lives in
+      res/values/strings.xml. The Activity-layer requestPermissions call-site
+      lands with the first Compose permission-prompt surface.
+      TODO(runtime-prompt-activity).
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- BLE runtime permissions (Android 12+, API 31+). -->
+    <!-- usesPermissionFlags="neverForLocation" is mandatory on BLUETOOTH_SCAN: -->
+    <!-- without it, BLUETOOTH_SCAN implies ACCESS_FINE_LOCATION, which HIVE never needs. -->
+    <!-- ADVERTISE and CONNECT do NOT carry the flag: per Google Android developer docs -->
+    <!-- (https://developer.android.com/develop/connectivity/bluetooth/bt-permissions), the flag is -->
+    <!-- documented/semantically meaningful ONLY on BLUETOOTH_SCAN; declaring it on ADVERTISE/CONNECT -->
+    <!-- is a no-op that deviates from upstream guidance. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- Pre-Android-12 BLE legacy permissions, gated by maxSdkVersion="30" so they -->
+    <!-- do NOT declare on API 31+ devices (where BLUETOOTH_ADVERTISE/CONNECT/SCAN -->
+    <!-- supersede them). Required only if minSDK is set below 31 — if minSDK >= 31, -->
+    <!-- these lines can be removed. -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- TODO(minsdk-decision): final minSDK level TBD; if minSDK >= 31, remove
+         the legacy BLUETOOTH + BLUETOOTH_ADMIN lines above. -->
+
+    <application
+        android:label="HIVE"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:hasFragileUserData="false">
+        <!--
+          TODO(application-class): no custom Application subclass yet. A future
+          change wires the Rust JNI bridge via cargo-ndk.
+
+          MainActivity is a plain android.app.Activity stub; the first Compose
+          surface lands later. android:exported="true" is required for the
+          LAUNCHER intent filter to surface the activity in the system launcher.
+
+          NO <meta-data android:name="firebase_*" />
+          NO <meta-data android:name="com.google.android.gms.*" />
+          NO <meta-data android:name="com.crashlytics.*" />
+          NO <meta-data android:name="io.branch.*" />
+          — forbidden by the ZERO-TELEMETRY product principle.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

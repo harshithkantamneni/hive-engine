@@ -1,0 +1,15 @@
+// HIVE iOS — Clang module map for cbindgen-generated `hive_core.h`.
+//
+// The `hive_core.h` C header is generated at build time by `cbindgen` (see
+// `mobile/ios/build.sh`). At v1.0 GA the header has ZERO declarations (the
+// export manifest is empty). The first FFI consumer regenerates the header
+// with at least one `extern "C"` symbol.
+//
+// This module-map allows Swift code in `Sources/HIVECore/HIVECore.swift` to
+// `import hive_core` (Clang module name) once the header lands. Until then,
+// the module is empty and imports succeed but expose no symbols — the same
+// shape as the v1.0 GA empty-manifest.
+module hive_core {
+    header "hive_core.h"
+    export *
+}

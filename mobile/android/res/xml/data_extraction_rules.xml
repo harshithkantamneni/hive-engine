@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HIVE Android — Data Extraction Rules (Android 12+ / API 31+)
+
+  The device-salt ciphertext blob (`hive.device-salt.v1.aes-gcm`) and the
+  trustee-list ciphertext blob must both be excluded from Android Auto Backup,
+  via manifest-level `android:allowBackup="false"` and this all-exclude
+  `android:dataExtractionRules` on Android 12+.
+
+  ZERO-TELEMETRY: no Google-account-fleet-aggregatable signal; no default cloud egress.
+
+  Policy: ALL domains excluded for both cloud-backup and device-transfer.
+  HIVE holds no on-device state that may leave the device without explicit
+  cryptographic consent. Adding any `<include>` path is a deliberate decision —
+  do NOT silently flip.
+-->
+<data-extraction-rules>
+    <!--
+      cloud-backup — Android Auto Backup to Google Drive (user's account).
+      All domains excluded: root, file, database, sharedpref, external.
+      Blocks the salt-ciphertext-blob export path.
+    -->
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+
+    <!--
+      device-transfer — D2D copy (e.g., new-device setup via USB/Wi-Fi).
+      Same all-exclude policy. The salt-export prohibition is absolute; device
+      transfer is no exception. A new device generates a new salt (created
+      exactly once, at first app launch).
+    -->
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

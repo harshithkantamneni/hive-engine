@@ -1,0 +1,23 @@
+# HIVE — a privacy-preserving, peer-to-peer collective-reasoning engine.
+#
+#   crates/rete-alpha : the reasoning engine (Rete production network + a JTMS
+#                       truth-maintenance system) and the local differential-
+#                       privacy pipeline, plus the `hive` binary and a TUI.
+#   crates/p2p-node   : peer discovery, NAT traversal, and shard distribution.
+#   mobile/*/rust     : iOS and Android FFI crates exposing `hive_core`.
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/rete-alpha",
+    "crates/p2p-node",
+    "mobile/android/rust",
+    "mobile/ios/rust",
+]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

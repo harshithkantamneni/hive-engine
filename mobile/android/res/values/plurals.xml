@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HIVE Android — plurals.xml
+
+  Ledger-surface plural strings for the coalesced sync banner. Pluralization
+  uses the Android `<plurals>` resource (not string-format with a hardcoded
+  "extraction(s)").
+
+  Two cases:
+    - `one`:    Syncing 1 extraction with 1 peer.
+    - `other`:  Syncing %1$d extractions with %2$d peers.
+
+  Render-site (Compose):
+    `pluralStringResource(R.plurals.hive_ledger_sync_banner, count, count, peerCount)`
+
+  NOTE: Android `<plurals>` quantity selection uses the FIRST argument only.
+  For the two-argument case (extraction-count + peer-count), the string is
+  selected by extraction-count and the peer-count is interpolated as %2$d in
+  any case. The `one` case is the singular path (1 extraction AND 1 peer);
+  select it only when count==1 AND peerCount==1, otherwise use the `other`
+  case (even with %1$d=1) when the paired count is >1.
+-->
+<resources>
+
+    <plurals name="hive_ledger_sync_banner">
+        <item quantity="one">Syncing 1 extraction with 1 peer.</item>
+        <item quantity="other">Syncing %1$d extractions with %2$d peers.</item>
+    </plurals>
+
+</resources>

@@ -1,0 +1,21 @@
+# Android build state
+android/.gradle/
+android/.kotlin/
+android/.cxx/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+
+# iOS / SwiftPM build state
+ios/.build/
+ios/.swiftpm/
+ios/DerivedData/
+ios/build/
+
+# Built Rust frameworks (treated as build artifacts; rebuild from Cargo workspace)
+ios/Frameworks/*.xcframework
+
+# macOS file-conflict duplicates (Spotlight / iCloud)
+* 2.xcframework
+* [0-9].xcodeproj/

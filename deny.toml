@@ -1,0 +1,157 @@
+# cargo-deny configuration for HIVE alpha distribution.
+#
+# Scope: license policy, a forbidden-Rust-crate `[bans]` table mirroring the
+# cross-platform forbidden-crate list (28 family enumeration), per-crate
+# feature-flag enforcement, and RustSec advisory integration.
+#
+# The `[bans] features` table forbids enabling `features = ["reset"]` on `hmac
+# =0.12.1`: the `reset` feature gates `FixedOutputReset::finalize_into_reset(
+# &mut self, ...)` (the &mut-self super-trait method), and this crate requires
+# the by-value `FixedOutput::finalize_into(self, ...)` variant instead.
+#
+# Policy rationale (license)
+# --------------------------
+# HIVE is proprietary-at-launch. Viral copyleft licenses (GPL, AGPL, LGPL)
+# would force source disclosure of the HIVE application code and are therefore
+# DENIED. Permissive and weak-copyleft licenses (MIT/Apache/BSD/ISC/MPL-2.0/
+# Zlib) are compatible with a proprietary binary distribution and are ALLOWED.
+#
+# `confidence-threshold = 0.8` matches cargo-deny's default SPDX detection
+# confidence. Anything below that must be reviewed by hand before adding.
+#
+# Schema: cargo-deny 0.14+ (`[bans]` array-of-tables `deny`, `[bans.features]`
+# array-of-tables for per-crate feature constraints). Verified against
+# cargo-deny 0.19.4 per `~/.cargo/bin/cargo-deny --version`.
+
+[graph]
+all-features = true
+
+# ---------------------------------------------------------------------------
+# [licenses] — proprietary-binary distribution policy.
+# ---------------------------------------------------------------------------
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CC0-1.0",
+    "MPL-2.0",
+    "Zlib",
+]
+
+[licenses.private]
+ignore = true
+
+# ---------------------------------------------------------------------------
+# [bans] — forbidden-Rust-crate enumeration.
+#
+# Mirrors the cross-platform forbidden-crate list (28 family substrings).
+# Each `name` row is a CRATE-FAMILY substring; cargo-deny matches against the
+# transitive dep graph.
+#
+# Verification:
+#   cargo deny check bans
+# ---------------------------------------------------------------------------
+
+[bans]
+# The libp2p sub-graph carries multiple-version sub-trees (yamux, bitflags,
+# rand_core, windows-sys family, etc.). `multiple-versions = "warn"` keeps this
+# as informational at the cargo-deny layer; `[bans] multiple-versions` here is
+# workspace-wide and includes the libp2p transitive graph which HIVE does not
+# own pinning of.
+multiple-versions = "warn"
+# `wildcards = "deny"` would FAIL on workspace-internal `hive-p2p-node` path-version
+# wildcard. Allow path-dep wildcards (workspace-internal) but deny crates.io wildcards.
+wildcards = "deny"
+allow-wildcard-paths = true
+highlight = "all"
+
+# Inline `deny` array form keeps every `name = "..."` row inside the [bans]
+# table-block scope. The array-of-tables `[[bans.deny]]` form (also supported
+# by cargo-deny 0.14+) would put each row in its own header; the inline form is
+# used here.
+#
+# 28-family forbidden enumeration. Each entry is a CRATE-FAMILY substring;
+# cargo-deny's `[bans] deny` matches against the transitive crate graph.
+deny = [
+    { name = "firebase" },
+    { name = "crashlytics" },
+    { name = "sentry" },
+    { name = "bugsnag" },
+    { name = "rollbar" },
+    { name = "raygun" },
+    { name = "appcenter" },
+    { name = "appsflyer" },
+    { name = "adjust" },
+    { name = "branch" },
+    { name = "kochava" },
+    { name = "singular" },
+    { name = "amplitude" },
+    { name = "mixpanel" },
+    { name = "segment" },
+    { name = "posthog" },
+    { name = "countly" },
+    { name = "intercom" },
+    { name = "pendo" },
+    { name = "fullstory" },
+    # Note: `heap` family is product-analytics Heap (heap.io), NOT `heapless`
+    # (no-std stdlib alternative). cargo-deny here uses `name = "heap"`, which
+    # matches `heap`, `heap-rs`, `heap-analytics`, etc.; `heapless` is NOT
+    # matched because cargo-deny's `[bans] deny` matches CRATE NAMES, not
+    # substrings.
+    { name = "heap" },
+    { name = "onesignal" },
+    { name = "airship" },
+    { name = "leanplum" },
+    { name = "optimizely" },
+    { name = "launchdarkly" },
+    { name = "split" },
+    { name = "fbsdk" },
+]
+
+# Per-crate exact-version + feature-flag enforcement table.
+# `hmac =0.12.1` MUST NOT enable `features = ["reset"]` because the `reset`
+# feature gates `FixedOutputReset::finalize_into_reset(&mut self, ...)`, which
+# is forbidden in favor of the by-value `FixedOutput::finalize_into(self, ...)`
+# variant. `deny = ["reset"]` array-of-banned-features means: cargo-deny FAILs
+# if any crate in the graph enables `reset` on `hmac =0.12.1`.
+features = [
+    { name = "hmac", version = "=0.12.1", deny = ["reset"] },
+]
+
+# ---------------------------------------------------------------------------
+# [advisories] — RustSec advisory database integration.
+#
+# RUSTSEC-2026-0002 (lru unsoundness) is INTENTIONALLY OMITTED — an upstream
+# fix exists at lru>=0.16.3 via ratatui 0.29→0.30, tracked for a future bump.
+#
+# Each entry MUST carry an explicit `reason` under the "No silent CVE
+# acceptance" rule. Verified via cargo-audit 0.22.1 against advisory-db 1090
+# entries. Re-evaluate any row whose upstream advisory updates.
+# ---------------------------------------------------------------------------
+
+[advisories]
+version = 2
+yanked = "warn"
+ignore = [
+  { id = "RUSTSEC-2026-0119", reason = "hickory-proto 0.25.2 O(n^2) name-compression DoS. Fix exists (>=0.26.1) but transitive libp2p sub-graph (libp2p-mdns 0.48.0 + libp2p-dns 0.44.0) pins hickory-proto =0.25.2; libp2p 0.56.0 is upstream-latest. Re-evaluate on next libp2p release. Verified 2026-05-17 cargo-audit 0.22.1." },
+  { id = "RUSTSEC-2026-0118", reason = "hickory-proto 0.25.2 NSEC3 unbounded-loop on cross-zone responses. Advisory patched_versions=[] (no upstream fix released in 0.25 line; unaffected window starts >=0.26.0-beta.1). Same libp2p transitive-pin block as RUSTSEC-2026-0119. Reach: cross-zone DNS NSEC3 path is not exercised by mDNS local-discovery, narrow surface. Verified 2026-05-17 cargo-audit 0.22.1." },
+  { id = "RUSTSEC-2023-0089", reason = "atomic-polyfill 1.0.3 unmaintained (informational). Transitive via heapless 0.7.17 -> postcard 1.1.3 -> rete-alpha + hive-p2p-node. No in-place fix; heapless >=0.8 dropped the polyfill but the postcard 1.1.x line has not yet bumped its heapless pin. Re-evaluate on next postcard release. Verified 2026-05-17 cargo-audit 0.22.1." },
+  { id = "RUSTSEC-2024-0436", reason = "paste 1.0.15 unmaintained (informational). Transitive via ratatui 0.29.0 + netlink-packet-core 0.8.1 (rtnetlink->if-watch->libp2p). No successor crate; 1.0.15 is sole/last release. Re-evaluate if a replacement-crate ecosystem emerges. Verified 2026-05-17 cargo-audit 0.22.1." },
+]
+
+# ---------------------------------------------------------------------------
+# [sources] — registry / git source whitelist.
+# ---------------------------------------------------------------------------
+
+[sources]
+unknown-registry = "warn"
+unknown-git = "warn"

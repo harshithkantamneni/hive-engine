@@ -1,0 +1,102 @@
+# config/privacy_config.toml
+# HIVE Privacy Pipeline Configuration
+# Changes here take effect on next app restart (no recompilation)
+
+[general]
+pipeline_version = "1.0"
+fail_mode = "suppress"  # always suppress on error, never share
+
+[tiers]
+# Document category -> tier mapping
+s1_categories = ["medical_bill", "medical_note", "insurance_eob", "prescription"]
+s2_categories = ["lease", "contract", "insurance_policy", "government_form",
+                  "bank_statement", "pay_stub"]
+s3_categories = ["utility_bill", "terms_of_service"]
+s4_categories = ["receipt", "restaurant_receipt"]
+default_tier = 2  # unknown categories default to S2
+
+[epsilon]
+s1 = 1.0
+s2 = 2.0
+s3 = 4.0
+s4 = 8.0
+
+[field_weights]
+entity_b_value = 0.30
+amount_bucket = 0.25
+relationship = 0.15
+entity_a_type = 0.10
+entity_b_type = 0.10
+region = 0.05
+time_period = 0.05
+
+[k_thresholds]
+# [tier][network_size_bracket] -> k
+# brackets: <10K, 10K-100K, 100K-1M, 1M+
+s1 = [100, 200, 300, 400]
+s2 = [50, 100, 150, 200]
+s3 = [15, 30, 50, 75]
+s4 = [8, 15, 20, 30]
+
+[l_diversity]
+# Entropy thresholds in bits
+s1 = 2.3
+s2 = 2.0
+s3 = 1.6
+s4 = 1.0
+
+[budget_ceilings]
+daily  = { s1 = 2.0,   s2 = 6.0,   s3 = 16.0,  s4 = 32.0  }
+weekly = { s1 = 10.0,  s2 = 30.0,  s3 = 80.0,  s4 = 160.0 }
+lifetime = { s1 = 100.0, s2 = 500.0, s3 = 2000.0, s4 = 5000.0 }
+
+[budget_composition]
+renyi_orders = [1.5, 2.0, 3.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+delta = 1e-6
+
+[jitter]
+# (min_seconds, max_seconds)
+s1 = [3600, 86400]    # 1h - 24h
+s2 = [3600, 43200]    # 1h - 12h
+s3 = [3600, 21600]    # 1h - 6h
+s4 = [0, 3600]        # 0  - 1h
+
+[batching]
+min_batch_size = { s1 = 10, s2 = 8, s3 = 5, s4 = 3 }
+max_hold_seconds = { s1 = 172800, s2 = 86400, s3 = 43200, s4 = 7200 }
+drain_interval_seconds = 900  # 15 minutes
+
+[cold_start]
+phase_thresholds = [10000, 100000, 1000000]  # bootstrap, growth, maturity, scale
+s1_enable_medical_contributors = 10000
+s2_enable_domain_contributors = 5000
+s3_enable_total_users = 1000
+s4_enable_total_users = 500
+
+[amount_buckets]
+# logarithmic boundaries
+boundaries = [100.0, 500.0, 1000.0, 5000.0, 10000.0, 50000.0, 100000.0]
+# Bucket labels for display
+labels = ["$0-$100", "$100-$500", "$500-$1K", "$1K-$5K",
+          "$5K-$10K", "$10K-$50K", "$50K-$100K", "$100K+"]
+
+[dandelion]
+stem_min = 5
+stem_max = 15
+
+[pii_allowlist]
+allowed_entity_types = [
+    "organization", "procedure", "diagnosis", "product", "vehicle",
+    "medication", "amount", "percentage", "code", "term",
+    "legal_mechanism", "certification"
+]
+allowed_roles = [
+    "provider", "insurer", "landlord", "merchant", "employer",
+    "charge", "fee", "payment", "deductible", "premium",
+    "billing_code", "category_code"
+]
+direct_id_types = [
+    "person", "email", "phone", "address", "ssn", "account_number",
+    "policy_number", "member_id", "medical_record_number",
+    "npi_number", "tax_id", "date_of_birth"
+]

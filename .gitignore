@@ -1,0 +1,27 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+
+# Mobile build artifacts
+mobile/ios/Frameworks/
+mobile/ios/build/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+*.xcframework
+
+# Models / large binaries
+*.bin
+*.gguf
+*.safetensors
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# xcodegen-generated Xcode project (source of truth: mobile/ios/project.yml)
+mobile/ios/*.xcodeproj

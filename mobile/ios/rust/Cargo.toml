@@ -1,0 +1,76 @@
+# HIVE iOS — Rust workspace member crate.
+#
+# This crate cross-compiles to the three iOS Rust targets
+# (aarch64-apple-ios + aarch64-apple-ios-sim + x86_64-apple-ios) and emits
+# `libhive_core.a` static-library slices that `mobile/ios/build.sh` lipo-merges
+# and wraps as `mobile/ios/Frameworks/hive_core.xcframework`. Swift code
+# consumes the framework via `Package.swift` `.binaryTarget(name: "hive_core",
+# path: "Frameworks/hive_core.xcframework")` plus the cbindgen-generated header
+# at `Sources/HIVECore/include/hive_core.h`.
+#
+# Crate-type rationale: iOS uses `staticlib` (NOT `cdylib`) because the
+# xcframework wraps `.a` slices, not `.dylib`. Linkage is static at app build
+# time. This differs from the Android sibling (`mobile/android/rust/Cargo.toml`)
+# which emits `cdylib` for `libhive_core.so` per the JNI loadLibrary contract.
+#
+# Dependency parity with the Android sibling crate is enforced by CI:
+# cxx =1.0.194 + zeroize =1.8.2 + hkdf =0.12.4 + hmac =0.12.1 + sha2 =0.10.9 +
+# cxx-build =1.0.194 + cbindgen =0.27.0 pinned to byte-identical exact versions
+# on both platforms. Drift is a CI fail-closed condition. iOS hkdf is pinned to
+# `=0.12.4` to match the Android sibling (hkdf 0.13.0 is incompatible with
+# sha2 0.10.9's digest API). hmac is a direct dep at `=0.12.1` WITHOUT
+# `features = ["reset"]`: HMAC is consumed via by-value
+# `FixedOutput::finalize_into(self, &mut Output<Self>)` per `digest 0.10.7`, so
+# the `reset` feature is not required. All eight deps mirror the Android sibling
+# byte-for-byte.
+#
+# The exported set of `extern "C"` symbols from `libhive_core.a` MUST match the
+# golden export manifest; any change to src/lib.rs that adds or removes an
+# exported symbol must amend the manifest in the same change.
+#
+# Workspace inheritance note: Cargo SILENTLY IGNORES `[profile.*]` declared
+# inside non-root members. Release profile pins (panic = "abort", strip = true,
+# lto = true, etc.) are inherited from the root workspace `[profile.release]`
+# block. Per-platform symbol-strip discipline is asserted by
+# `mobile/ios/project.yml` via STRIP_STYLE=all + STRIP_INSTALLED_PRODUCT=YES
+# at the Xcode-target level; the root profile keeps Rust-side panic strings
+# from leaking into the static library before xcodebuild stripping.
+
+[package]
+name = "hive_mobile_ffi_ios"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+description = "HIVE Rust FFI core for iOS"
+
+[lib]
+name = "hive_core"
+# iOS uses staticlib (.a) for the xcframework. Android uses cdylib (.so) for
+# JNI loadLibrary. Parity is on `name = "hive_core"` byte-identity AND the
+# `extern "C"` symbol set — NOT crate-type.
+crate-type = ["staticlib"]
+
+[dependencies]
+# Parity with mobile/android/rust: identical version pins + identical feature
+# flags enforced by CI.
+cxx     = "=1.0.194"
+zeroize = { version = "=1.8.2", default-features = false, features = ["zeroize_derive"] }
+# Pinned to `=0.12.4` to match the Android sibling (digest 0.10 API compatible
+# with sha2 =0.10.9). hkdf 0.13.0 is incompatible with sha2 0.10.9 (digest 0.11
+# API mismatch).
+hkdf    = "=0.12.4"
+# hmac `=0.12.1` direct dep WITHOUT `features = ["reset"]`: HMAC is consumed via
+# by-value `FixedOutput::finalize_into(self, &mut Output<Self>)` per
+# `digest 0.10.7`. `FixedOutputReset::finalize_into_reset(&mut self, ...)` from
+# the super-trait would REQUIRE the `reset` feature, which is intentionally not
+# enabled. Byte-identical with the Android sibling.
+hmac    = "=0.12.1"
+sha2    = "=0.10.9"
+
+[build-dependencies]
+# cxx-build expands the bridge macro; cbindgen emits the
+# `Sources/HIVECore/include/hive_core.h` consumed by the Swift module-map.
+# Versions PINNED to byte-identical with mobile/android/rust.
+cxx-build = "=1.0.194"
+cbindgen  = "=0.27.0"

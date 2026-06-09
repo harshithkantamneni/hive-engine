@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  HIVE iOS — HIVE.entitlements
+
+  Intentionally empty capability set.
+
+  The only two entries below are the signing-team baseline values Apple
+  requires on every iOS app bundle:
+
+    - application-identifier              = $(AppIdentifierPrefix)computer.hive.app
+    - com.apple.developer.team-identifier = $(TeamIdentifierPrefix)
+
+  Both use Xcode build-variable placeholders that resolve at signing time
+  from the active provisioning profile + Apple Developer team membership.
+
+  No capability entitlements. Specifically:
+    - NO com.apple.developer.applesignin
+    - NO com.apple.developer.associated-domains
+    - NO com.apple.developer.networking.multicast
+    - NO com.apple.developer.networking.wifi-info
+    - NO aps-environment
+    - NO com.apple.developer.usernotifications.communication
+    - NO com.apple.developer.healthkit / homekit / icloud-* / driverkit
+    - NO com.apple.developer.siri
+    - NO com.apple.developer.family-controls
+    - NO com.apple.developer.applepay
+    - NO com.apple.developer.game-center
+    - NO com.apple.developer.push-to-talk
+    - NO com.apple.developer.weatherkit
+    - NO com.apple.developer.shared-with-you
+    - NO com.apple.security.application-groups
+    - NO com.apple.developer.nfc.readersession.formats
+    - NO com.apple.developer.media-services
+
+  Rationale: the smallest possible entitlement surface minimizes the App-Review
+  capability signature class. A provisioning profile with zero entitlements
+  requires zero App-Review capability justification beyond the Info.plist
+  usage-description strings.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Apple signing-team baseline. Resolves at build time to the active Apple
+         Developer team prefix + bundle ID (`computer.hive.app`). Not a capability —
+         Apple requires this on every iOS bundle for code-signing to succeed. -->
+    <key>application-identifier</key>
+    <string>$(AppIdentifierPrefix)computer.hive.app</string>
+
+    <!-- Apple Developer team baseline. Resolves at build time from the active
+         provisioning profile's TeamIdentifier. -->
+    <key>com.apple.developer.team-identifier</key>
+    <string>$(TeamIdentifierPrefix)</string>
+</dict>
+</plist>

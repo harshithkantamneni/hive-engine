@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HIVE Android — strings.xml
+
+  BLE runtime-prompt copy for BLUETOOTH_ADVERTISE + BLUETOOTH_CONNECT +
+  BLUETOOTH_SCAN, combined into ONE system permission prompt under Android's
+  `android.permission-group.NEARBY_DEVICES` group.
+
+  Runtime-prompt flow (consumer not yet wired):
+    - The Activity-layer `ActivityCompat.requestPermissions(...)` call-site that
+      consumes these strings arrives with the first Compose permission-prompt
+      Activity. The flow is approximately:
+        pre-prompt dialog (title/body/CTAs) → system permission prompt →
+        (if denied a second time) post-denial rationale → (if permanently
+        denied) Settings-deep-link affordance.
+      TODO(runtime-prompt-activity).
+
+  Voice coherence: the pre-prompt, rationale, and Settings-deep-link surfaces all
+  share the noun "Nearby devices" / "nearby devices" so a user who has seen any
+  two forms a coherent mental model.
+
+  Copy guidance:
+    - No "Bluetooth" / "BLE" words in the pre-prompt body (the system already
+      says "Nearby devices"; duplicating the mechanism is redundant).
+    - No auto-re-prompt on denial; the Settings deep-link is the only correct
+      recovery path.
+    - Keep "Not right now" (not "Skip" / "Cancel") — temporal honesty is
+      load-bearing.
+    - Keep "Go back" (not "Cancel" / "Dismiss").
+
+  ZERO-TELEMETRY: strings.xml is a resource file; no network egress.
+
+  No generic AI aesthetic: no sparkles, no "AI-powered", no exclamation, no apology.
+-->
+<resources>
+
+    <!--
+      Pre-prompt explanatory dialog (fires BEFORE the Android system permission
+      prompt). Surfaces in the "Discover your computer" flow.
+    -->
+    <string name="hive_ble_pre_prompt_title">Find your computer over the air.</string>
+    <string name="hive_ble_pre_prompt_body">"HIVE finds other HIVE devices nearby by listening for a short, rotating code they broadcast. Your phone needs Android's 'Nearby devices' permission to do this. HIVE never uses this permission for location. Granting it shows one system prompt; you can revoke it anytime in Settings."</string>
+    <string name="hive_ble_pre_prompt_cta_primary">Show the prompt</string>
+    <string name="hive_ble_pre_prompt_cta_secondary">Not right now</string>
+
+    <!--
+      Post-denial rationale string passed to the re-prompt UI when
+      `shouldShowRequestPermissionRationale()` returns true (typically the
+      second attempt after the user denied without "Don't ask again").
+    -->
+    <string name="hive_ble_post_denial_rationale">"HIVE uses 'Nearby devices' to find your other HIVE devices without a network. The permission is never used for location."</string>
+
+    <!--
+      Permanent-denial Settings-deep-link affordance. Surfaces when
+      `shouldShowRequestPermissionRationale()` returns false AFTER the user
+      denied with "Don't ask again" on A11+ OR denied twice on A12+. The CTA
+      routes through `Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)` to
+      the HIVE app-info screen; Permissions → Nearby devices is one tap deeper.
+      DO NOT call `requestPermissions()` here — the OS will no-op it; the
+      Settings deep-link is the only correct recovery path.
+    -->
+    <string name="hive_ble_permanent_denial_title">Nearby devices is off in your settings.</string>
+    <string name="hive_ble_permanent_denial_body">"Android is holding the permission denied, so HIVE can't ask again here. You can turn it on yourself: Settings → HIVE → Permissions → Nearby devices. HIVE never uses this permission for location. You can also skip discovery for now and pair over a network if one is available."</string>
+    <string name="hive_ble_permanent_denial_cta_primary">Open HIVE settings</string>
+    <string name="hive_ble_permanent_denial_cta_secondary">Go back</string>
+
+    <!--
+      ============================================================================
+      MainActivity ledger-surface strings
+      ============================================================================
+
+      Voice coherence:
+        - Trailing periods on CTA labels are intentional authored voice — do not
+          remove. They deviate intentionally from the Material 3 default.
+        - Canonical nouns appear verbatim: "Nearby devices", "extractions",
+          "peers", "this device", "your other HIVE devices", "pair", "over the air".
+        - Banner priority: at most ONE banner at a time;
+          storage > permission > peer-unreachable. Implemented in LedgerScreen.kt.
+        - U+00B7 MIDDLE DOT (·) in the time-stamp/source separator pattern
+          (NOT ASCII period) — see `hive_ledger_row_meta_separator`.
+        - No exclamation marks anywhere; no emoji; no smart-quote curlies.
+          Apostrophes are escaped per Android XML rules (\').
+
+      ZERO-TELEMETRY: strings are display-layer only; no telemetry SDK consumes
+      these literals.
+
+      No generic AI aesthetic: no "AI-powered", no sparkle emoji, no apologetic
+      copy, no "Sorry" / "Oops" filler, no exclamation.
+    -->
+
+    <!-- First-run / empty state. -->
+    <string name="hive_ledger_empty_title">No extractions on this device.</string>
+    <string name="hive_ledger_empty_body">Pair another device to start sharing extractions. Pairing happens directly between your devices.</string>
+    <string name="hive_ledger_empty_cta_primary">Pair a device.</string>
+    <string name="hive_ledger_empty_cta_secondary">About HIVE.</string>
+
+    <!-- Populated state — list-item helpers. -->
+    <string name="hive_ledger_row_untitled">Untitled extraction.</string>
+
+    <!-- Loading / sync-in-progress states. -->
+    <string name="hive_ledger_loading_initial">Reading from this device.</string>
+    <string name="hive_ledger_checking_nearby">Checking nearby devices.</string>
+    <string name="hive_ledger_sending">Sending.</string>
+    <string name="hive_ledger_receiving">Receiving.</string>
+    <string name="hive_ledger_no_peers_reachable">No peers reachable.</string>
+
+    <!--
+      Coalesced sync banner (when ≥3 concurrent transfers). Pluralized via
+      `<plurals>` (render with `pluralStringResource(...)`). Two cases per the
+      Android resource shape: `one` + `other`.
+      String-format args: %1$d = extraction count, %2$d = peer count.
+    -->
+
+    <!-- Permission-denied / error states. -->
+    <string name="hive_ledger_permission_banner">"HIVE can find your other devices nearby once you grant \'Nearby devices\' permission."</string>
+    <string name="hive_ledger_peer_unreachable_title">"This device can\'t reach your peers right now."</string>
+    <string name="hive_ledger_peer_unreachable_body">Your other devices may be off, far away, or on a different Wi-Fi network. HIVE will reconnect on its own when one is reachable again.</string>
+    <string name="hive_ledger_storage_unreachable_title">"This device\'s storage is unreachable."</string>
+    <string name="hive_ledger_storage_unreachable_body">"HIVE can\'t read or write extractions on this device right now. Free up space, or restart this device, then reopen HIVE."</string>
+    <string name="hive_ledger_extraction_failure">"This extraction didn\'t transfer cleanly. HIVE will retry."</string>
+    <string name="hive_ledger_extraction_failure_persistent">"Couldn\'t receive this extraction. Try pairing again on the source device."</string>
+    <string name="hive_ledger_crash_recovery_action_resume">Resume.</string>
+    <string name="hive_ledger_crash_recovery_action_discard">Discard.</string>
+
+    <!-- Settings / about overflow menu. -->
+    <string name="hive_overflow_settings">Settings.</string>
+    <string name="hive_overflow_about">About HIVE.</string>
+    <string name="hive_about_title">HIVE.</string>
+    <string name="hive_about_body">HIVE doesn\'t send your extractions to a server. Pairing happens directly between your devices.</string>
+    <string name="hive_about_privacy">HIVE doesn\'t collect any data.</string>
+    <string name="hive_about_footer">HIVE is open source. Source code at github.com/hive/hive.</string>
+
+    <!-- App bar. -->
+    <string name="hive_appbar_title">HIVE</string>
+    <string name="hive_appbar_refresh_a11y">Refresh extractions and check for nearby devices.</string>
+    <string name="hive_appbar_overflow_a11y">More options.</string>
+
+    <!--
+      Time-stamp + accessibility status helpers. The relative-time logic is
+      rendered at the LedgerViewModel layer.
+    -->
+    <string name="hive_ledger_timestamp_just_now">Just now</string>
+    <string name="hive_ledger_timestamp_yesterday">Yesterday</string>
+
+</resources>

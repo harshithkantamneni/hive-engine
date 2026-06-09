@@ -1,0 +1,133 @@
+# HIVE iOS — xcodegen project specification
+#
+# Declarative xcodegen + SPM is the spec-of-record for the Xcode project;
+# `.xcodeproj` is GENERATED at build time by `xcodegen generate` (see
+# `mobile/ios/build.sh` step 7) and MUST NOT be hand-edited. This file is the
+# single source of truth for project structure, avoiding hand-edited .pbxproj
+# merge conflicts.
+#
+# CocoaPods + Carthage are not used; SPM is the only dependency manager (see
+# Package.swift; dependencies: [] for now).
+#
+# The bundleIdPrefix is byte-identical to the Android applicationId.
+name: HIVE
+options:
+  bundleIdPrefix: computer.hive.app           # Byte-identity with the Android applicationId
+  deploymentTarget:
+    iOS: "14.0"                               # NSLocalNetworkUsageDescription requires iOS 14+
+  developmentLanguage: en
+  # Pin the xcodegen-emitted Xcode project format to objectVersion 56 for
+  # cross-host build consistency. Newer Xcode emits format 77 by default; the
+  # macos-14 CI runner (Xcode 15.4) reads up to format 70. The xcodegen 2.45.4
+  # ProjectFormat enum value `xcode14_0` resolves to objectVersion 56 (per
+  # Sources/XcodeGenKit/ProjectFormat.swift in PR #1566) and is the lowest
+  # `xcode*_*` enum xcodegen exposes — the most conservative choice that
+  # maximizes back-compat with the macos-14 (Xcode 15.4) CI runner. When the CI
+  # runner upgrades to macos-15+ (Xcode 16+), this pin can be relaxed to
+  # `xcode15_0` (objectVersion 60) or removed.
+  #
+  # NOTE: xcodegen 2.45.4 accepts only the enum cases `xcode16_3 / xcode16_0 /
+  # xcode15_3 / xcode15_0 / xcode14_0` (PR #1566); any other string falls back
+  # to .default (= xcode16_0 = objectVersion 77), defeating the pin. `xcode14_0`
+  # is the objectVersion 56 case and is what is used here.
+  projectFormat: xcode14_0  # → objectVersion 56 (Xcode 14.0 compatibility)
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    # Xcode minor-version pin. The required Xcode version is asserted by the iOS
+    # CI gate at build start (`xcrun xcodebuild -version | head -1`) and pinned in
+    # the committed `mobile/ios/.xcode-version` file.
+    ENABLE_BITCODE: NO                        # Bitcode deprecated by Apple as of Xcode 14
+    TARGETED_DEVICE_FAMILY: "1,2"             # iPhone + iPad
+    INFOPLIST_FILE: HIVE/Info.plist
+    CODE_SIGN_ENTITLEMENTS: HIVE/HIVE.entitlements
+
+    # Strip Rust panic strings from the release .ipa. Rust panic! macros embed
+    # source file path + line number into the binary; those strings have leaked
+    # maintainer working-directory paths in past Rust-mobile audits. Stripping is
+    # mandatory.
+    DEPLOYMENT_POSTPROCESSING: YES
+    STRIP_INSTALLED_PRODUCT: YES
+    STRIP_STYLE: all                          # Remove all symbols
+    COPY_PHASE_STRIP: YES
+
+targets:
+  HIVE:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/HIVEApp
+      - Sources/HIVESecurity
+      - Sources/HIVECore
+    info:
+      path: HIVE/Info.plist
+      properties:
+        # NOTE: xcodegen OWNS Info.plist when info.path is set (it regenerates on every
+        # `xcodegen generate`); plist keys MUST be declared here under properties: to
+        # survive regeneration. Direct Info.plist edits get reverted at the next xcodegen run.
+        NSLocalNetworkUsageDescription: "HIVE looks for your other HIVE devices on this Wi-Fi network. This lets them share updates directly, without routing through the internet."
+    resources:
+      - HIVE/PrivacyInfo.xcprivacy            # Privacy manifest bundled in the app
+    dependencies:
+      - framework: Frameworks/hive_core.xcframework
+        embed: false                           # Static linkage — no dylib at runtime
+    settings:
+      base:
+        IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+        # 3-segment PRODUCT_BUNDLE_IDENTIFIER for byte-identity with the Android
+        # applicationId. Overrides xcodegen's default-append behavior (which would
+        # otherwise append `.HIVE` to bundleIdPrefix → 4 segments). xcodegen
+        # regeneration writes this through to Info.plist `CFBundleIdentifier` at
+        # build time.
+        PRODUCT_BUNDLE_IDENTIFIER: computer.hive.app
+        # NO link to AppTrackingTransparency.framework.
+        # NO CocoaPods integration; SPM only.
+
+  HIVESecurityTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/HIVESecurityTests
+    dependencies:
+      - target: HIVE
+
+# ---------------------------------------------------------------------------
+# Schemes
+# ---------------------------------------------------------------------------
+# xcodegen 2.45.4 does NOT support a per-scheme `destination` field directly;
+# the .xcscheme file does not record a build-time destination — that is set by
+# xcodebuild's `-destination` flag at invocation time. What xcodegen DOES
+# support is a per-scheme dictionary controlling build/run/test/profile/
+# analyze/archive actions and config bindings.
+#
+# Background: `xcodebuild -scheme HIVE` fails on a host with no installed iOS
+# Simulator runtime (only the SDK), because no concrete sim device exists to
+# resolve `name=iPhone 15` against. The explicit scheme block below lets
+# xcodegen produce a stable .xcscheme; build.sh adds `-destination
+# 'generic/platform=iOS Simulator'` so xcodebuild does not require an installed
+# sim runtime to build (generic destination = SDK-level resolve, no concrete
+# device).
+#
+# See build.sh for the canonical xcodebuild invocation with the -destination flag.
+schemes:
+  HIVE:
+    build:
+      targets:
+        HIVE: all
+        HIVESecurityTests: [test]
+    run:
+      config: Debug
+      # xcodegen 2.45.4 does not serialize a destination field into .xcscheme —
+      # see build.sh for the live `xcodebuild -destination 'generic/platform=iOS
+      # Simulator'` flag.
+    test:
+      config: Debug
+      targets:
+        - HIVESecurityTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,68 @@
+# HIVE Android — mobile/android/rust/Cargo.toml
+#
+# Rust crate for the Android-side FFI. Workspace member of the root
+# <repo>/Cargo.toml (single-root-workspace discipline).
+#
+# Exported `extern "C"` symbols: `hive_core_zeroize` and `hive_core_hkdf_sha256`.
+# Each migration is contract-preserving on `DeviceSaltHandle.close()`.
+#
+# Cargo silently ignores per-member `[profile.release]` blocks under workspace
+# inheritance, so this crate omits one — the workspace-root Cargo.toml carries
+# the profile settings.
+
+[package]
+name        = "hive_mobile_ffi"
+version     = "0.1.0"
+edition     = "2021"                          # Matches desktop workspace edition.
+publish     = false
+
+[lib]
+name        = "hive_core"                     # Produces libhive_core.so / libhive_core.a / libhive_core.dylib.
+crate-type  = ["cdylib", "staticlib"]         # cdylib for Android .so; staticlib for iOS .a.
+
+[dependencies]
+# Cross-language bridge.
+cxx         = "=1.0.194"
+
+# Zeroize primitive.
+zeroize     = { version = "=1.8.2", default-features = false, features = ["zeroize_derive"] }
+
+# HKDF-SHA256 (RFC 5869), consumed by `hive_core_hkdf_sha256`. The pin set
+# `hkdf 0.12.4` + `sha2 0.10.9` is digest-0.10-coherent: `hkdf 0.13` wants
+# `digest 0.11` while `sha2 0.10` provides `digest 0.10`, so pinning hkdf to
+# 0.13 against sha2 0.10 fails to build with an E0599 trait-bound mismatch on
+# `Hkdf::<Sha256>::new`. The iOS sibling `mobile/ios/rust/Cargo.toml` mirrors
+# these pins byte-identically (Cargo-resolution layer).
+hkdf        = "=0.12.4"
+sha2        = "=0.10.9"
+
+# HMAC direct-dep. The internal `ZeroOnDrop<T>` wrapper holds
+# `hmac::Hmac<sha2::Sha256>` instances at the FFI boundary, consumed via by-value
+# `digest::FixedOutput::finalize_into(self, ...)` per the `digest 0.10.7`
+# signature. The `=0.12.1` pin is the digest-0.10-compatible version (same
+# coherence class as `sha2 =0.10.9` and `hkdf =0.12.4`). NO `features` array on
+# this dep: `features = ["reset"]` would pull in the `&mut self`
+# `FixedOutputReset::finalize_into_reset(...)` super-trait method, but the
+# by-value `FixedOutput::finalize_into` variant is what this crate uses.
+# The iOS sibling `mobile/ios/rust/Cargo.toml` mirrors `=0.12.1` byte-identical.
+hmac        = "=0.12.1"
+
+# All five direct deps (cxx, zeroize, hkdf, sha2, hmac) are exact-pinned to the
+# Cargo.lock-locked versions (the single-root-workspace lockfile is the source
+# of truth). The iOS sibling `mobile/ios/rust/Cargo.toml` carries a byte-
+# identical pin set.
+
+[build-dependencies]
+cxx-build   = "=1.0.194"
+cbindgen    = "=0.27.0"                       # iOS-side bridging-header generation. Exact-pinned.
+
+# NOTE: [profile.release] is INTENTIONALLY OMITTED here. Cargo silently ignores
+# per-member release-profile blocks under workspace inheritance; the profile
+# settings live in <repo>/Cargo.toml.
+#
+# Profile properties applied to this crate via the root workspace:
+#   opt-level   = 3
+#   lto         = true
+#   codegen-units = 1
+#   panic       = "abort"   (drops panic strings)
+#   strip       = true
