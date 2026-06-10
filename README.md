@@ -46,7 +46,7 @@ response, and timing **jitter**, all governed by a **privacy-budget manager**
 ```bash
 cargo run --bin hive            # interactive terminal UI (mock extraction)
 cargo run --bin hive -- --live  # live extraction with a local small model
-cargo test                      # the suite (1,700+ tests)
+cargo test                      # the suite (1,300+ tests)
 ```
 
 In the TUI: `Enter` submits a document path, `j`/`k` scroll insights,
