@@ -72,6 +72,11 @@ orchestration, the governance, and the architecture. The engineering agents
 produced the implementation under it. The decision records that process
 generated are in [`docs/adrs/`](docs/adrs/).
 
+By the numbers: **45 role-specialized agents** across **203 plan-build-evaluate
+cycles** produced the engine in this repository — **~62K lines of Rust**
+(`find . -name "*.rs" -not -path "./target/*" | xargs wc -l`) gated by the
+**1,300+ test** suite above.
+
 This repository is the curated engine. The lab's full operational history is
 kept private.
 
