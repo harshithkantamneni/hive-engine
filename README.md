@@ -59,7 +59,7 @@ crates/rete-alpha/   reasoning engine + privacy pipeline + hive binary + TUI
 crates/p2p-node/     libp2p peer node (discovery, NAT, shard distribution)
 mobile/android/      Android client + hive_core FFI
 mobile/ios/          iOS client + hive_core FFI
-docs/                specs and architecture decision records (docs/adrs/)
+docs/                architecture notes
 ```
 
 ## Provenance
@@ -70,7 +70,7 @@ formal, ADR-driven governance process (proposal, review, anti-forgery
 co-signing, and gated acceptance). I built and direct the lab: the
 orchestration, the governance, and the architecture. The engineering agents
 produced the implementation under it. The decision records that process
-generated are in [`docs/adrs/`](docs/adrs/).
+generated aren't included in this repository.
 
 By the numbers: **45 role-specialized agents** across **203 plan-build-evaluate
 cycles** produced the engine in this repository — **~62K lines of Rust**
